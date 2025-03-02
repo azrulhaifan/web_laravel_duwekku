@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\AccountResource\Pages;
+use App\Filament\Resources\AccountResource\RelationManagers;
 use App\Models\Account;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -42,10 +43,14 @@ class AccountResource extends Resource
                     ->visible(fn($livewire) => $livewire instanceof Pages\CreateAccount)
                     ->label('Saldo Awal'),
                 Forms\Components\TextInput::make('current_balance')
-                    ->disabled()
                     ->numeric()
                     ->visible(fn($livewire) => $livewire instanceof Pages\EditAccount)
                     ->label('Saldo Saat Ini'),
+                Forms\Components\Textarea::make('balance_adjustment_description')
+                    ->maxLength(255)
+                    ->visible(fn($livewire) => $livewire instanceof Pages\EditAccount)
+                    ->label('Alasan Penyesuaian Saldo')
+                    ->dehydrated(false),
                 Forms\Components\TextInput::make('currency')
                     ->required()
                     ->default('IDR')
@@ -123,7 +128,7 @@ class AccountResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\BalanceHistoriesRelationManager::class,
         ];
     }
 

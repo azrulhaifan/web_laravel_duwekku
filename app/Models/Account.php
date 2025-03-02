@@ -2,10 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Account extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'name',
         'type',
@@ -29,5 +33,10 @@ class Account extends Model
         static::creating(function (Account $account) {
             $account->current_balance = $account->initial_balance;
         });
+    }
+
+    public function balanceHistories(): HasMany
+    {
+        return $this->hasMany(AccountBalanceHistory::class);
     }
 }
