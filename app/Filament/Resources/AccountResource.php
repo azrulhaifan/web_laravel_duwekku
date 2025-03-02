@@ -15,7 +15,7 @@ class AccountResource extends Resource
     protected static ?string $model = Account::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-credit-card';
-    
+
     protected static ?string $navigationGroup = 'Pengaturan';
 
     public static function form(Form $form): Form
@@ -39,11 +39,12 @@ class AccountResource extends Resource
                     ->required()
                     ->numeric()
                     ->default(0)
+                    ->visible(fn($livewire) => $livewire instanceof Pages\CreateAccount)
                     ->label('Saldo Awal'),
                 Forms\Components\TextInput::make('current_balance')
-                    ->required()
+                    ->disabled()
                     ->numeric()
-                    ->default(0)
+                    ->visible(fn($livewire) => $livewire instanceof Pages\EditAccount)
                     ->label('Saldo Saat Ini'),
                 Forms\Components\TextInput::make('currency')
                     ->required()
