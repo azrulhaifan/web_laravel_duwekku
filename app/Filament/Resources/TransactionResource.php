@@ -38,7 +38,8 @@ class TransactionResource extends Resource
                     ->relationship('account', 'name')
                     ->required()
                     ->preload()
-                    ->label('Akun'),
+                    ->label('Akun')
+                    ->live(),
                 Forms\Components\Select::make('category_id')
                     ->relationship('category', 'name', function (Builder $query, $get) {
                         $type = $get('type');
@@ -50,7 +51,17 @@ class TransactionResource extends Resource
                     ->preload()
                     ->label('Kategori'),
                 Forms\Components\Select::make('to_account_id')
-                    ->options(fn() => Account::pluck('name', 'id')->toArray())
+                    ->options(function ($get) {
+                        $accountId = $get('account_id');
+                        $accounts = Account::query();
+
+                        // Exclude the source account from destination options
+                        if ($accountId) {
+                            $accounts->where('id', '!=', $accountId);
+                        }
+
+                        return $accounts->pluck('name', 'id')->toArray();
+                    })
                     ->visible(fn($get) => $get('type') === 'transfer')
                     ->required(fn($get) => $get('type') === 'transfer')
                     ->label('Akun Tujuan'),
