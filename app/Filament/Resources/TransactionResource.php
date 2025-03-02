@@ -72,9 +72,11 @@ class TransactionResource extends Resource
                 Forms\Components\FileUpload::make('attachment')
                     ->directory('attachments')
                     ->label('Lampiran'),
+                // Menyembunyikan field transaksi berulang
                 Forms\Components\Toggle::make('is_recurring')
                     ->label('Transaksi Berulang')
-                    ->live(),
+                    ->live()
+                    ->hidden(),
                 Forms\Components\Select::make('recurring_type')
                     ->options([
                         'daily' => 'Harian',
@@ -82,11 +84,12 @@ class TransactionResource extends Resource
                         'monthly' => 'Bulanan',
                         'yearly' => 'Tahunan',
                     ])
-                    ->visible(fn($get) => $get('is_recurring'))
-                    ->required(fn($get) => $get('is_recurring'))
+                    ->hidden()
                     ->label('Tipe Pengulangan'),
                 Forms\Components\TextInput::make('recurring_day')
                     ->numeric()
+                    ->hidden()
+                    ->label('Hari Pengulangan')
                     ->visible(fn($get) => $get('is_recurring'))
                     ->required(fn($get) => $get('is_recurring'))
                     ->label('Hari Pengulangan'),
@@ -133,7 +136,8 @@ class TransactionResource extends Resource
                     ->label('Tanggal'),
                 Tables\Columns\IconColumn::make('is_recurring')
                     ->boolean()
-                    ->label('Berulang'),
+                    ->label('Berulang')
+                    ->hidden(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
