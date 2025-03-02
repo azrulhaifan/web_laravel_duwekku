@@ -65,74 +65,165 @@ class Transaction extends Model
     protected function updateAccountBalances(): void
     {
         $amount = $this->amount;
+        $transactionType = match($this->type) {
+            'income' => 'Pemasukan',
+            'expense' => 'Pengeluaran',
+            'transfer' => 'Transfer',
+            default => $this->type
+        };
 
         switch ($this->type) {
             case 'income':
+                $oldBalance = $this->account->current_balance;
+                $newBalance = $oldBalance + $amount;
+                
+                // Create balance history with proper description and relation
+                $this->account->balanceHistories()->create([
+                    'old_balance' => $oldBalance,
+                    'new_balance' => $newBalance,
+                    'amount' => $amount,
+                    'type' => 'transaction',
+                    'source_type' => 'Transaction',
+                    'source_id' => $this->id,
+                    'description' => "Dari transaksi {$transactionType} ID #{$this->id}",
+                ]);
+                
                 $this->account->increment('current_balance', $amount);
                 break;
 
             case 'expense':
+                $oldBalance = $this->account->current_balance;
+                $newBalance = $oldBalance - $amount;
+                
+                // Create balance history with proper description and relation
+                $this->account->balanceHistories()->create([
+                    'old_balance' => $oldBalance,
+                    'new_balance' => $newBalance,
+                    'amount' => -$amount,
+                    'type' => 'transaction',
+                    'source_type' => 'Transaction',
+                    'source_id' => $this->id,
+                    'description' => "Dari transaksi {$transactionType} ID #{$this->id}",
+                ]);
+                
                 $this->account->decrement('current_balance', $amount);
                 break;
 
             case 'transfer':
+                // Source account
+                $oldSourceBalance = $this->account->current_balance;
+                $newSourceBalance = $oldSourceBalance - $amount;
+                
+                $this->account->balanceHistories()->create([
+                    'old_balance' => $oldSourceBalance,
+                    'new_balance' => $newSourceBalance,
+                    'amount' => -$amount,
+                    'type' => 'transaction',
+                    'source_type' => 'Transaction',
+                    'source_id' => $this->id,
+                    'description' => "Dari transaksi {$transactionType} ID #{$this->id} ke {$this->toAccount->name}",
+                ]);
+                
                 $this->account->decrement('current_balance', $amount);
+                
+                // Destination account
+                $oldDestBalance = $this->toAccount->current_balance;
+                $newDestBalance = $oldDestBalance + $amount;
+                
+                $this->toAccount->balanceHistories()->create([
+                    'old_balance' => $oldDestBalance,
+                    'new_balance' => $newDestBalance,
+                    'amount' => $amount,
+                    'type' => 'transaction',
+                    'source_type' => 'Transaction',
+                    'source_id' => $this->id,
+                    'description' => "Dari transaksi {$transactionType} ID #{$this->id} dari {$this->account->name}",
+                ]);
+                
                 $this->toAccount->increment('current_balance', $amount);
                 break;
         }
     }
 
-    protected function updateAccountBalancesOnUpdate(): void
+    // Similarly update the revertAccountBalances method
+    protected function revertAccountBalances(): void
     {
-        // Jika tipe transaksi berubah, kita perlu mengembalikan saldo lama dan menerapkan saldo baru
-        if ($this->wasChanged('type') || $this->wasChanged('account_id') || $this->wasChanged('to_account_id')) {
-            // Revert old transaction
-            $oldType = $this->getOriginal('type');
-            $oldAmount = $this->getOriginal('amount');
-            $oldAccountId = $this->getOriginal('account_id');
-            $oldToAccountId = $this->getOriginal('to_account_id');
+        $amount = $this->amount;
+        $transactionType = match($this->type) {
+            'income' => 'Pemasukan',
+            'expense' => 'Pengeluaran',
+            'transfer' => 'Transfer',
+            default => $this->type
+        };
 
-            $oldAccount = Account::find($oldAccountId);
-            $oldToAccount = $oldToAccountId ? Account::find($oldToAccountId) : null;
+        switch ($this->type) {
+            case 'income':
+                $oldBalance = $this->account->current_balance;
+                $newBalance = $oldBalance - $amount;
+                
+                $this->account->balanceHistories()->create([
+                    'old_balance' => $oldBalance,
+                    'new_balance' => $newBalance,
+                    'amount' => -$amount,
+                    'type' => 'transaction',
+                    'source_type' => 'Transaction',
+                    'source_id' => $this->id,
+                    'description' => "Pembatalan transaksi {$transactionType} ID #{$this->id}",
+                ]);
+                
+                $this->account->decrement('current_balance', $amount);
+                break;
 
-            if ($oldAccount) {
-                switch ($oldType) {
-                    case 'income':
-                        $oldAccount->decrement('current_balance', $oldAmount);
-                        break;
-                    case 'expense':
-                        $oldAccount->increment('current_balance', $oldAmount);
-                        break;
-                    case 'transfer':
-                        if ($oldToAccount) {
-                            $oldAccount->increment('current_balance', $oldAmount);
-                            $oldToAccount->decrement('current_balance', $oldAmount);
-                        }
-                        break;
-                }
-            }
+            case 'expense':
+                $oldBalance = $this->account->current_balance;
+                $newBalance = $oldBalance + $amount;
+                
+                $this->account->balanceHistories()->create([
+                    'old_balance' => $oldBalance,
+                    'new_balance' => $newBalance,
+                    'amount' => $amount,
+                    'type' => 'transaction',
+                    'source_type' => 'Transaction',
+                    'source_id' => $this->id,
+                    'description' => "Pembatalan transaksi {$transactionType} ID #{$this->id}",
+                ]);
+                
+                $this->account->increment('current_balance', $amount);
+                break;
 
-            // Apply new transaction
-            $this->updateAccountBalances();
-        }
-        // Jika hanya jumlah yang berubah, kita cukup menerapkan selisih
-        elseif ($this->wasChanged('amount')) {
-            $oldAmount = $this->getOriginal('amount');
-            $newAmount = $this->amount;
-            $difference = $newAmount - $oldAmount;
-
-            switch ($this->type) {
-                case 'income':
-                    $this->account->increment('current_balance', $difference);
-                    break;
-                case 'expense':
-                    $this->account->decrement('current_balance', $difference);
-                    break;
-                case 'transfer':
-                    $this->account->decrement('current_balance', $difference);
-                    $this->toAccount->increment('current_balance', $difference);
-                    break;
-            }
+            case 'transfer':
+                // Source account
+                $oldSourceBalance = $this->account->current_balance;
+                $newSourceBalance = $oldSourceBalance + $amount;
+                
+                $this->account->balanceHistories()->create([
+                    'old_balance' => $oldSourceBalance,
+                    'new_balance' => $newSourceBalance,
+                    'amount' => $amount,
+                    'type' => 'transaction',
+                    'source_type' => 'Transaction',
+                    'source_id' => $this->id,
+                    'description' => "Pembatalan transaksi {$transactionType} ID #{$this->id}",
+                ]);
+                
+                $this->account->increment('current_balance', $amount);
+                
+                // Destination account
+                $oldDestBalance = $this->toAccount->current_balance;
+                $newDestBalance = $oldDestBalance - $amount;
+                
+                $this->toAccount->balanceHistories()->create([
+                    'old_balance' => $oldDestBalance,
+                    'new_balance' => $newDestBalance,
+                    'amount' => -$amount,
+                    'type' => 'transaction',
+                    'source_type' => 'Transaction',
+                    'source_id' => $this->id,
+                    'description' => "Pembatalan transaksi {$transactionType} ID #{$this->id}",
+                ]);
+                
+                $this->toAccount->decrement('current_balance', $amount);
+                break;
         }
     }
 }

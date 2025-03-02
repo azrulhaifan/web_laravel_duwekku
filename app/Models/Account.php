@@ -33,10 +33,37 @@ class Account extends Model
         static::creating(function (Account $account) {
             $account->current_balance = $account->initial_balance;
         });
+
+        static::updating(function (Account $account) {
+            // Only record history if current_balance is changed manually
+            // (not through transactions which handle their own history)
+            if ($account->isDirty('current_balance') && 
+                !app()->runningInConsole() && 
+                request()->has('balance_adjustment_description')) {
+                
+                $oldBalance = $account->getOriginal('current_balance');
+                $newBalance = $account->current_balance;
+                $amount = $newBalance - $oldBalance;
+
+                $account->balanceHistories()->create([
+                    'old_balance' => $oldBalance,
+                    'new_balance' => $newBalance,
+                    'amount' => $amount,
+                    'type' => 'adjustment',
+                    'source_type' => 'Manual',
+                    'description' => request('balance_adjustment_description') ?? 'Manual balance adjustment',
+                ]);
+            }
+        });
     }
 
     public function balanceHistories(): HasMany
     {
         return $this->hasMany(AccountBalanceHistory::class);
+    }
+
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class);
     }
 }

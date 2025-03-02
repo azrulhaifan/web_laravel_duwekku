@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\AccountResource\RelationManagers;
 
+use App\Models\Transaction;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -36,12 +37,12 @@ class BalanceHistoriesRelationManager extends RelationManager
                     ->label('Tanggal'),
                 Tables\Columns\TextColumn::make('type')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'adjustment' => 'warning',
                         'transaction' => 'primary',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
                         'adjustment' => 'Penyesuaian',
                         'transaction' => 'Transaksi',
                         default => $state,
@@ -55,11 +56,33 @@ class BalanceHistoriesRelationManager extends RelationManager
                     ->label('Saldo Baru'),
                 Tables\Columns\TextColumn::make('amount')
                     ->money('IDR')
-                    ->color(fn ($record) => $record->amount >= 0 ? 'success' : 'danger')
+                    ->color(fn($record) => $record->amount >= 0 ? 'success' : 'danger')
                     ->label('Jumlah'),
                 Tables\Columns\TextColumn::make('description')
                     ->limit(50)
                     ->label('Deskripsi'),
+                Tables\Columns\TextColumn::make('source_id')
+                    ->label('Transaksi')
+                    ->formatStateUsing(function ($state, $record) {
+                        if ($record && $record->source_type === 'Transaction' && $state) {
+                            $transaction = Transaction::find($state);
+                            if ($transaction) {
+                                return "#{$state}";
+                            }
+                        }
+                        return '';
+                    })
+                    ->url(function ($record) {
+                        if ($record && $record->source_type === 'Transaction' && $record->source_id) {
+                            $transaction = Transaction::find($record->source_id);
+                            if ($transaction) {
+                                return route('filament.admin.resources.transactions.edit', ['record' => $record->source_id]);
+                            }
+                        }
+                        return null;
+                    })
+                    ->openUrlInNewTab()
+                    ->visible(fn($record) => $record && $record->source_type === 'Transaction' && $record->source_id),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('type')
