@@ -83,6 +83,32 @@ class TransactionResource extends Resource
                 Forms\Components\FileUpload::make('attachment')
                     ->directory('attachments')
                     ->label('Lampiran'),
+                // Tambahkan opsi untuk mencatat hutang/piutang
+                Forms\Components\Toggle::make('create_debt')
+                    ->label('Catat sebagai Hutang/Piutang')
+                    ->live()
+                    ->visible(fn($get) => in_array($get('type'), ['income', 'expense'])),
+                Forms\Components\Hidden::make('debt_type')
+                    ->default(fn($get) => $get('type') === 'expense' ? 'receivable' : 'payable')
+                    ->live(),
+                Forms\Components\Placeholder::make('debt_type_display')
+                    ->label('Tipe Hutang/Piutang')
+                    ->content(function ($get) {
+                        $type = $get('type');
+                        if ($type === 'expense') {
+                            return 'Piutang (Uang akan kembali)';
+                        } else {
+                            return 'Hutang (Uang harus dibayar)';
+                        }
+                    })
+                    ->visible(fn($get) => $get('create_debt') && in_array($get('type'), ['income', 'expense'])),
+                Forms\Components\TextInput::make('person_name')
+                    ->maxLength(255)
+                    ->visible(fn($get) => $get('create_debt') && in_array($get('type'), ['income', 'expense']))
+                    ->label('Nama Orang/Pihak'),
+                Forms\Components\DatePicker::make('due_date')
+                    ->visible(fn($get) => $get('create_debt') && in_array($get('type'), ['income', 'expense']))
+                    ->label('Tanggal Jatuh Tempo'),
                 // Menyembunyikan field transaksi berulang
                 Forms\Components\Toggle::make('is_recurring')
                     ->label('Transaksi Berulang')
