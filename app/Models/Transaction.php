@@ -46,4 +46,55 @@ class Transaction extends Model
     {
         return $this->belongsTo(Account::class, 'to_account_id');
     }
+
+    protected static function booted(): void
+    {
+        static::created(function (Transaction $transaction) {
+            $transaction->updateAccountBalances();
+        });
+
+        static::deleted(function (Transaction $transaction) {
+            $transaction->revertAccountBalances();
+        });
+    }
+
+    protected function updateAccountBalances(): void
+    {
+        $amount = $this->amount;
+
+        switch ($this->type) {
+            case 'income':
+                $this->account->increment('current_balance', $amount);
+                break;
+
+            case 'expense':
+                $this->account->decrement('current_balance', $amount);
+                break;
+
+            case 'transfer':
+                $this->account->decrement('current_balance', $amount);
+                $this->toAccount->increment('current_balance', $amount);
+                break;
+        }
+    }
+
+    protected function revertAccountBalances(): void
+    {
+        $amount = $this->amount;
+
+        switch ($this->type) {
+            case 'income':
+                $this->account->decrement('current_balance', $amount);
+                break;
+
+            case 'expense':
+                $this->account->increment('current_balance', $amount);
+                break;
+
+            case 'transfer':
+                $this->account->increment('current_balance', $amount);
+                $this->toAccount->decrement('current_balance', $amount);
+                break;
+        }
+    }
 }
