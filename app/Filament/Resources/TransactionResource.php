@@ -16,6 +16,12 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class TransactionResource extends Resource
 {
+
+    // TODO AZRUL
+    // 1 = pembuatan transaksi yg ditandai sebagai hutang, tidak ter record di tabel debts
+    // 2 = pembuatan hutang perlu menulis transaksi terelasi, sehingga saldo / balance account akan ter update juga
+    // 3 = resource debts, error ketika checklist "sudah diselesaikan"
+
     protected static ?string $model = Transaction::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
