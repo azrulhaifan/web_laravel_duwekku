@@ -19,7 +19,7 @@ class TransactionResource extends Resource
 
     // TODO AZRUL
     // [DONE] 1 = pembuatan transaksi yg ditandai sebagai hutang, tidak ter record di tabel debts
-    // 1.1 = Ketika debt diedit, maka transaksi yang berelasi juga harus disesuaikan
+    // [DONE] 1.1 = Ketika debt diedit, maka transaksi yang berelasi juga harus disesuaikan
     // 2 = pembuatan hutang dari resource hutang perlu menulis transaksi terelasi, sehingga saldo / balance account akan ter update juga
     // 3 = resource debts, error ketika checklist "sudah diselesaikan"
 
