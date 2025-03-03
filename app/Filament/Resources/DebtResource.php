@@ -220,6 +220,7 @@ class DebtResource extends Resource
             'index' => Pages\ListDebts::route('/'),
             'create' => Pages\CreateDebt::route('/create'),
             'edit' => Pages\EditDebt::route('/{record}/edit'),
+            'view' => Pages\ViewDebt::route('/{record}'),
         ];
     }
 }
