@@ -16,13 +16,6 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class TransactionResource extends Resource
 {
-
-    // TODO AZRUL
-    // [DONE] 1 = pembuatan transaksi yg ditandai sebagai hutang, tidak ter record di tabel debts
-    // [DONE] 1.1 = Ketika debt diedit, maka transaksi yang berelasi juga harus disesuaikan
-    // [DONE] 2 = pembuatan hutang dari resource hutang perlu menulis transaksi terelasi, sehingga saldo / balance account akan ter update juga
-    // [DONE] 3 = resource debts, error ketika checklist "sudah diselesaikan"
-
     protected static ?string $model = Transaction::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
@@ -234,7 +227,7 @@ class TransactionResource extends Resource
                         // Check if this transaction is related to a debt
                         $hasDebt = $record->debts()->count() > 0;
                         $isSettlement = $record->settlementDebts()->count() > 0;
-                        
+
                         // Don't allow editing if it's related to a debt or is a settlement transaction
                         return !($hasDebt || $isSettlement);
                     }),
