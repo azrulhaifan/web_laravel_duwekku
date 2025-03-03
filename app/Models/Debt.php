@@ -20,8 +20,7 @@ class Debt extends Model
         'due_date',
         'description',
         'is_settled',
-        'settled_date',
-        'settlement_transaction_id',
+        'settled_at',
     ];
 
     protected $casts = [
@@ -29,7 +28,7 @@ class Debt extends Model
         'date' => 'date',
         'due_date' => 'date',
         'is_settled' => 'boolean',
-        'settled_date' => 'date',
+        'settled_at' => 'datetime',
     ];
 
     public function account(): BelongsTo
