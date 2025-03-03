@@ -25,18 +25,21 @@ class DebtResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('type')
-                    ->options([
-                        'receivable' => 'Piutang (Uang akan kembali)',
-                        'payable' => 'Hutang (Uang harus dibayar)',
-                    ])
-                    ->required()
-                    ->label('Tipe'),
+                // Make sure all Select components have proper options with non-null labels
                 Forms\Components\Select::make('account_id')
                     ->relationship('account', 'name')
                     ->required()
                     ->preload()
                     ->label('Akun'),
+
+                Forms\Components\Select::make('type')
+                    ->options([
+                        'payable' => 'Hutang (Uang harus dibayar)',
+                        'receivable' => 'Piutang (Uang akan kembali)',
+                    ])
+                    ->required()
+                    ->label('Tipe Hutang/Piutang'),
+
                 Forms\Components\TextInput::make('person_name')
                     ->required()
                     ->maxLength(255)
@@ -56,16 +59,28 @@ class DebtResource extends Resource
                     ->label('Deskripsi/Alasan'),
                 Forms\Components\Toggle::make('is_settled')
                     ->label('Sudah Diselesaikan')
-                    ->live(),
-                Forms\Components\DatePicker::make('settled_date')
+                    ->live()
+                    ->afterStateUpdated(function ($state, $set) {
+                        if ($state) {
+                            $set('settled_at', now()->toDateString()); // Store as date string
+                        } else {
+                            $set('settled_at', null);
+                        }
+                    }),
+
+                Forms\Components\DatePicker::make('settled_at')
                     ->label('Tanggal Penyelesaian')
-                    ->visible(fn ($get) => $get('is_settled')),
-                Forms\Components\Select::make('settlement_transaction_id')
-                    ->options(fn () => Transaction::orderBy('date', 'desc')->pluck('description', 'id')->toArray())
-                    ->searchable()
-                    ->preload()
+                    ->visible(fn($get) => $get('is_settled'))
+                    ->required(fn($get) => $get('is_settled')),
+
+                // Replace the Select component with a Hidden field and a Placeholder to display info
+                Forms\Components\Hidden::make('settlement_transaction_id')
+                    ->visible(fn($get) => $get('is_settled')),
+
+                Forms\Components\Placeholder::make('settlement_transaction_info')
                     ->label('Transaksi Penyelesaian')
-                    ->visible(fn ($get) => $get('is_settled')),
+                    ->content('Transaksi penyelesaian akan dibuat otomatis')
+                    ->visible(fn($get) => $get('is_settled')),
             ]);
     }
 
@@ -75,12 +90,12 @@ class DebtResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('type')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'receivable' => 'success',
                         'payable' => 'danger',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
                         'receivable' => 'Piutang',
                         'payable' => 'Hutang',
                         default => $state,
@@ -107,11 +122,12 @@ class DebtResource extends Resource
                 Tables\Columns\IconColumn::make('is_settled')
                     ->boolean()
                     ->label('Lunas'),
-                Tables\Columns\TextColumn::make('settled_date')
+                // In the table columns section, update the settled_date column to settled_at
+                Tables\Columns\TextColumn::make('settled_at')
                     ->date()
                     ->sortable()
                     ->label('Tanggal Pelunasan')
-                    ->visible(fn ($livewire) => $livewire->getTableFilterState('is_settled') === true),
+                    ->visible(fn($livewire) => $livewire->getTableFilterState('is_settled') === true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('type')
@@ -136,40 +152,54 @@ class DebtResource extends Resource
                         return $query
                             ->when(
                                 $data['date_from'],
-                                fn ($query, $date) => $query->whereDate('date', '>=', $date),
+                                fn($query, $date) => $query->whereDate('date', '>=', $date),
                             )
                             ->when(
                                 $data['date_until'],
-                                fn ($query, $date) => $query->whereDate('date', '<=', $date),
+                                fn($query, $date) => $query->whereDate('date', '<=', $date),
                             );
                     })
                     ->label('Rentang Tanggal'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                // And in the table actions section:
+                // In the settle action, update the field name
                 Tables\Actions\Action::make('settle')
                     ->label('Lunasi')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->form([
-                        Forms\Components\DatePicker::make('settled_date')
+                        Forms\Components\DatePicker::make('settled_at')
                             ->required()
                             ->default(now())
                             ->label('Tanggal Pelunasan'),
-                        Forms\Components\Select::make('settlement_transaction_id')
-                            ->options(fn () => Transaction::orderBy('date', 'desc')->pluck('description', 'id')->toArray())
-                            ->searchable()
-                            ->preload()
-                            ->label('Transaksi Pelunasan'),
+
+                        // Remove the Select component for settlement_transaction_id
+                        Forms\Components\Placeholder::make('settlement_transaction_info')
+                            ->label('Transaksi Penyelesaian')
+                            ->content('Transaksi penyelesaian akan dibuat otomatis'),
                     ])
                     ->action(function (Debt $record, array $data) {
+                        // Create settlement transaction automatically
+                        $settlementType = $record->type === 'payable' ? 'expense' : 'income';
+
+                        $transaction = Transaction::create([
+                            'account_id' => $record->account_id,
+                            'type' => $settlementType,
+                            'amount' => $record->amount,
+                            'date' => $data['settled_at'],
+                            'time' => now(),
+                            'description' => "Penyelesaian " . ($record->type === 'payable' ? 'hutang' : 'piutang') . " untuk {$record->person_name}",
+                        ]);
+
                         $record->update([
                             'is_settled' => true,
-                            'settled_date' => $data['settled_date'],
-                            'settlement_transaction_id' => $data['settlement_transaction_id'],
+                            'settled_at' => $data['settled_at'],
+                            'settlement_transaction_id' => $transaction->id,
                         ]);
                     })
-                    ->visible(fn (Debt $record) => !$record->is_settled),
+                    ->visible(fn(Debt $record) => !$record->is_settled),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

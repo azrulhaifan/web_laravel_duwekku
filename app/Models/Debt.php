@@ -21,6 +21,7 @@ class Debt extends Model
         'description',
         'is_settled',
         'settled_at',
+        'settlement_transaction_id',
     ];
 
     protected $casts = [
