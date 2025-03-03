@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Transaction extends Model
 {
@@ -47,6 +48,14 @@ class Transaction extends Model
         return $this->belongsTo(Account::class, 'to_account_id');
     }
 
+    /**
+     * Get the debt record associated with the transaction.
+     */
+    public function debt(): HasOne
+    {
+        return $this->hasOne(Debt::class);
+    }
+
     protected static function booted(): void
     {
         static::created(function (Transaction $transaction) {
@@ -54,7 +63,9 @@ class Transaction extends Model
         });
 
         static::updated(function (Transaction $transaction) {
-            $transaction->updateAccountBalancesOnUpdate();
+            // Get the original attributes before the update
+            $originalData = $transaction->getOriginal();
+            $transaction->updateAccountBalancesOnUpdate($originalData);
         });
 
         static::deleted(function (Transaction $transaction) {
@@ -65,7 +76,7 @@ class Transaction extends Model
     protected function updateAccountBalances(): void
     {
         $amount = $this->amount;
-        $transactionType = match($this->type) {
+        $transactionType = match ($this->type) {
             'income' => 'Pemasukan',
             'expense' => 'Pengeluaran',
             'transfer' => 'Transfer',
@@ -76,7 +87,7 @@ class Transaction extends Model
             case 'income':
                 $oldBalance = $this->account->current_balance;
                 $newBalance = $oldBalance + $amount;
-                
+
                 // Create balance history with proper description and relation
                 $this->account->balanceHistories()->create([
                     'old_balance' => $oldBalance,
@@ -87,14 +98,14 @@ class Transaction extends Model
                     'source_id' => $this->id,
                     'description' => "Dari transaksi {$transactionType} ID #{$this->id}",
                 ]);
-                
+
                 $this->account->increment('current_balance', $amount);
                 break;
 
             case 'expense':
                 $oldBalance = $this->account->current_balance;
                 $newBalance = $oldBalance - $amount;
-                
+
                 // Create balance history with proper description and relation
                 $this->account->balanceHistories()->create([
                     'old_balance' => $oldBalance,
@@ -105,7 +116,7 @@ class Transaction extends Model
                     'source_id' => $this->id,
                     'description' => "Dari transaksi {$transactionType} ID #{$this->id}",
                 ]);
-                
+
                 $this->account->decrement('current_balance', $amount);
                 break;
 
@@ -113,7 +124,7 @@ class Transaction extends Model
                 // Source account
                 $oldSourceBalance = $this->account->current_balance;
                 $newSourceBalance = $oldSourceBalance - $amount;
-                
+
                 $this->account->balanceHistories()->create([
                     'old_balance' => $oldSourceBalance,
                     'new_balance' => $newSourceBalance,
@@ -123,13 +134,13 @@ class Transaction extends Model
                     'source_id' => $this->id,
                     'description' => "Dari transaksi {$transactionType} ID #{$this->id} ke {$this->toAccount->name}",
                 ]);
-                
+
                 $this->account->decrement('current_balance', $amount);
-                
+
                 // Destination account
                 $oldDestBalance = $this->toAccount->current_balance;
                 $newDestBalance = $oldDestBalance + $amount;
-                
+
                 $this->toAccount->balanceHistories()->create([
                     'old_balance' => $oldDestBalance,
                     'new_balance' => $newDestBalance,
@@ -139,17 +150,51 @@ class Transaction extends Model
                     'source_id' => $this->id,
                     'description' => "Dari transaksi {$transactionType} ID #{$this->id} dari {$this->account->name}",
                 ]);
-                
+
                 $this->toAccount->increment('current_balance', $amount);
                 break;
         }
+    }
+
+    /**
+     * Update account balances when a transaction is updated
+     */
+    public function updateAccountBalancesOnUpdate(array $originalData): void
+    {
+        $originalType = $originalData['type'] ?? null;
+        $originalAccountId = $originalData['account_id'] ?? null;
+        $originalToAccountId = $originalData['to_account_id'] ?? null;
+        $originalAmount = $originalData['amount'] ?? 0;
+
+        // First, reverse the effect of the original transaction
+        if ($originalType && $originalAccountId) {
+            $originalAccount = Account::find($originalAccountId);
+
+            if ($originalAccount) {
+                if ($originalType === 'income') {
+                    $originalAccount->decrementBalance($originalAmount);
+                } elseif ($originalType === 'expense') {
+                    $originalAccount->incrementBalance($originalAmount);
+                } elseif ($originalType === 'transfer' && $originalToAccountId) {
+                    $originalAccount->incrementBalance($originalAmount);
+
+                    $originalToAccount = Account::find($originalToAccountId);
+                    if ($originalToAccount) {
+                        $originalToAccount->decrementBalance($originalAmount);
+                    }
+                }
+            }
+        }
+
+        // Then apply the effect of the updated transaction
+        $this->updateAccountBalances();
     }
 
     // Similarly update the revertAccountBalances method
     protected function revertAccountBalances(): void
     {
         $amount = $this->amount;
-        $transactionType = match($this->type) {
+        $transactionType = match ($this->type) {
             'income' => 'Pemasukan',
             'expense' => 'Pengeluaran',
             'transfer' => 'Transfer',
@@ -160,7 +205,7 @@ class Transaction extends Model
             case 'income':
                 $oldBalance = $this->account->current_balance;
                 $newBalance = $oldBalance - $amount;
-                
+
                 $this->account->balanceHistories()->create([
                     'old_balance' => $oldBalance,
                     'new_balance' => $newBalance,
@@ -170,14 +215,14 @@ class Transaction extends Model
                     'source_id' => $this->id,
                     'description' => "Pembatalan transaksi {$transactionType} ID #{$this->id}",
                 ]);
-                
+
                 $this->account->decrement('current_balance', $amount);
                 break;
 
             case 'expense':
                 $oldBalance = $this->account->current_balance;
                 $newBalance = $oldBalance + $amount;
-                
+
                 $this->account->balanceHistories()->create([
                     'old_balance' => $oldBalance,
                     'new_balance' => $newBalance,
@@ -187,7 +232,7 @@ class Transaction extends Model
                     'source_id' => $this->id,
                     'description' => "Pembatalan transaksi {$transactionType} ID #{$this->id}",
                 ]);
-                
+
                 $this->account->increment('current_balance', $amount);
                 break;
 
@@ -195,7 +240,7 @@ class Transaction extends Model
                 // Source account
                 $oldSourceBalance = $this->account->current_balance;
                 $newSourceBalance = $oldSourceBalance + $amount;
-                
+
                 $this->account->balanceHistories()->create([
                     'old_balance' => $oldSourceBalance,
                     'new_balance' => $newSourceBalance,
@@ -205,13 +250,13 @@ class Transaction extends Model
                     'source_id' => $this->id,
                     'description' => "Pembatalan transaksi {$transactionType} ID #{$this->id}",
                 ]);
-                
+
                 $this->account->increment('current_balance', $amount);
-                
+
                 // Destination account
                 $oldDestBalance = $this->toAccount->current_balance;
                 $newDestBalance = $oldDestBalance - $amount;
-                
+
                 $this->toAccount->balanceHistories()->create([
                     'old_balance' => $oldDestBalance,
                     'new_balance' => $newDestBalance,
@@ -221,7 +266,7 @@ class Transaction extends Model
                     'source_id' => $this->id,
                     'description' => "Pembatalan transaksi {$transactionType} ID #{$this->id}",
                 ]);
-                
+
                 $this->toAccount->decrement('current_balance', $amount);
                 break;
         }

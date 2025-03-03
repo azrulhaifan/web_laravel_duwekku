@@ -37,10 +37,12 @@ class Account extends Model
         static::updating(function (Account $account) {
             // Only record history if current_balance is changed manually
             // (not through transactions which handle their own history)
-            if ($account->isDirty('current_balance') && 
-                !app()->runningInConsole() && 
-                request()->has('balance_adjustment_description')) {
-                
+            if (
+                $account->isDirty('current_balance') &&
+                !app()->runningInConsole() &&
+                request()->has('balance_adjustment_description')
+            ) {
+
                 $oldBalance = $account->getOriginal('current_balance');
                 $newBalance = $account->current_balance;
                 $amount = $newBalance - $oldBalance;
@@ -65,5 +67,27 @@ class Account extends Model
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);
+    }
+
+    /**
+     * Increment the account balance by the specified amount
+     *
+     * @param float $amount
+     * @return void
+     */
+    public function incrementBalance($amount): void
+    {
+        $this->increment('current_balance', $amount);
+    }
+
+    /**
+     * Decrement the account balance by the specified amount
+     *
+     * @param float $amount
+     * @return void
+     */
+    public function decrementBalance($amount): void
+    {
+        $this->decrement('current_balance', $amount);
     }
 }
