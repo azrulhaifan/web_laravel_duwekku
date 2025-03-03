@@ -27,7 +27,7 @@ class DebtResource extends Resource
             ->schema([
                 // Make sure all Select components have proper options with non-null labels
                 Forms\Components\Select::make('account_id')
-                    ->relationship('account', 'name')
+                    ->relationship('account', 'name', fn ($query) => $query->active()) // Only show active accounts
                     ->required()
                     ->preload()
                     ->label('Akun'),

@@ -90,4 +90,10 @@ class Account extends Model
     {
         $this->decrement('current_balance', $amount);
     }
+
+    // Add a scope for active accounts
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
 }

@@ -17,7 +17,7 @@ class AccountBalances extends BaseWidget
     {
         return $table
             ->heading('Saldo Akun')
-            ->query(Account::query())
+            ->query(Account::active()) // Only show active accounts
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nama Akun')

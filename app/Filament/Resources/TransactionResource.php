@@ -35,7 +35,7 @@ class TransactionResource extends Resource
                     ->afterStateUpdated(fn(Forms\Set $set) => $set('category_id', null))
                     ->label('Tipe Transaksi'),
                 Forms\Components\Select::make('account_id')
-                    ->relationship('account', 'name')
+                    ->relationship('account', 'name', fn ($query) => $query->active()) // Only show active accounts
                     ->required()
                     ->preload()
                     ->label('Akun')
@@ -53,7 +53,7 @@ class TransactionResource extends Resource
                 Forms\Components\Select::make('to_account_id')
                     ->options(function ($get) {
                         $accountId = $get('account_id');
-                        $accounts = Account::query();
+                        $accounts = Account::active(); // Only show active accounts
 
                         // Exclude the source account from destination options
                         if ($accountId) {
