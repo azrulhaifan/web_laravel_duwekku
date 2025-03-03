@@ -229,7 +229,15 @@ class TransactionResource extends Resource
                     ->label('Rentang Tanggal'),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(function (Transaction $record) {
+                        // Check if this transaction is related to a debt
+                        $hasDebt = $record->debts()->count() > 0;
+                        $isSettlement = $record->settlementDebts()->count() > 0;
+                        
+                        // Don't allow editing if it's related to a debt or is a settlement transaction
+                        return !($hasDebt || $isSettlement);
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

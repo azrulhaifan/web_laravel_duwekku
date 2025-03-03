@@ -162,9 +162,8 @@ class DebtResource extends Resource
                     ->label('Rentang Tanggal'),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                // And in the table actions section:
-                // In the settle action, update the field name
+                Tables\Actions\EditAction::make()
+                    ->visible(fn(Debt $record) => !$record->is_settled),
                 Tables\Actions\Action::make('settle')
                     ->label('Lunasi')
                     ->icon('heroicon-o-check-circle')

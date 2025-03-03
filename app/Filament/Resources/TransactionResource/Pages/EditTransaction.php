@@ -3,9 +3,10 @@
 namespace App\Filament\Resources\TransactionResource\Pages;
 
 use App\Filament\Resources\TransactionResource;
-use App\Models\Debt;
+use App\Models\Transaction;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Notifications\Notification;
 
 class EditTransaction extends EditRecord
 {
@@ -18,61 +19,27 @@ class EditTransaction extends EditRecord
         ];
     }
 
-    protected function mutateFormDataBeforeFill(array $data): array
+    public function mount($record): void
     {
-        // Check if this transaction has a debt record
-        $transaction = $this->getRecord();
-        $debt = Debt::where('transaction_id', $transaction->id)->first();
-        
-        if ($debt) {
-            $data['create_debt'] = true;
-            $data['person_name'] = $debt->person_name;
-            $data['due_date'] = $debt->due_date;
-        }
-        
-        return $data;
-    }
+        parent::mount($record);
 
-    protected function afterSave(): void
-    {
-        $transaction = $this->getRecord();
-        $data = $this->data;
-        
-        // Get existing debt record if any
-        $debt = Debt::where('transaction_id', $transaction->id)->first();
-        
-        if (isset($data['create_debt']) && $data['create_debt'] && in_array($transaction->type, ['income', 'expense'])) {
-            // Determine debt type based on transaction type
-            $debtType = $transaction->type === 'expense' ? 'receivable' : 'payable';
-            
-            if ($debt) {
-                // Update existing debt record
-                $debt->update([
-                    'account_id' => $transaction->account_id,
-                    'type' => $debtType,
-                    'person_name' => $data['person_name'] ?? $debt->person_name,
-                    'amount' => $transaction->amount,
-                    'date' => $transaction->date,
-                    'due_date' => $data['due_date'] ?? $debt->due_date,
-                    'description' => $transaction->description,
-                ]);
-            } else {
-                // Create new debt record
-                Debt::create([
-                    'account_id' => $transaction->account_id,
-                    'transaction_id' => $transaction->id,
-                    'type' => $debtType,
-                    'person_name' => $data['person_name'] ?? 'Unknown',
-                    'amount' => $transaction->amount,
-                    'date' => $transaction->date,
-                    'due_date' => $data['due_date'] ?? null,
-                    'description' => $transaction->description,
-                    'is_settled' => false,
-                ]);
-            }
-        } elseif ($debt && (!isset($data['create_debt']) || !$data['create_debt'])) {
-            // If debt record exists but create_debt is unchecked, delete the debt record
-            $debt->delete();
+        // Check if this transaction is related to a debt
+        $hasDebt = $this->record->debts()->count() > 0;
+        $isSettlement = $this->record->settlementDebts()->count() > 0;
+
+        // Redirect if transaction is related to a debt
+        if ($hasDebt || $isSettlement) {
+            $message = $hasDebt
+                ? 'Transaksi ini terkait dengan hutang/piutang dan tidak dapat diedit.'
+                : 'Transaksi ini merupakan transaksi pelunasan hutang/piutang dan tidak dapat diedit.';
+
+            Notification::make()
+                ->title('Transaksi tidak dapat diedit')
+                ->body($message)
+                ->danger()
+                ->send();
+
+            $this->redirect(TransactionResource::getUrl('index'));
         }
     }
 }

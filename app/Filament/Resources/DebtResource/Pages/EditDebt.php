@@ -8,6 +8,7 @@ use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Filament\Notifications\Notification;
 
 class EditDebt extends EditRecord
 {
@@ -16,8 +17,25 @@ class EditDebt extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            Actions\DeleteAction::make()
+                ->visible(fn() => !$this->record->is_settled),
         ];
+    }
+
+    public function mount($record): void
+    {
+        parent::mount($record);
+
+        // Redirect if debt is already settled
+        if ($this->record->is_settled) {
+            Notification::make()
+                ->title('Hutang/Piutang sudah lunas')
+                ->body('Hutang/Piutang yang sudah lunas tidak dapat diedit.')
+                ->danger()
+                ->send();
+
+            $this->redirect(DebtResource::getUrl('index'));
+        }
     }
 
     protected function mutateFormDataBeforeSave(array $data): array

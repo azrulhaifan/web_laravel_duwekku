@@ -56,6 +56,16 @@ class Transaction extends Model
         return $this->hasOne(Debt::class);
     }
 
+    public function debts()
+    {
+        return $this->hasMany(Debt::class, 'transaction_id');
+    }
+
+    public function settlementDebts()
+    {
+        return $this->hasMany(Debt::class, 'settlement_transaction_id');
+    }
+
     protected static function booted(): void
     {
         static::created(function (Transaction $transaction) {
