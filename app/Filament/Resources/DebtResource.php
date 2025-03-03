@@ -87,6 +87,7 @@ class DebtResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('date', 'desc') // Add default sorting by date in descending order
             ->columns([
                 Tables\Columns\TextColumn::make('type')
                     ->badge()
