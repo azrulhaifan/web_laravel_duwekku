@@ -27,47 +27,84 @@ class AccountResource extends Resource
                     ->required()
                     ->maxLength(255)
                     ->label('Nama Akun'),
+
                 Forms\Components\Select::make('type')
                     ->options([
-                        'bank' => 'Bank',
-                        'cash' => 'Tunai',
+                        'cash' => 'Uang Tunai',
+                        'bank' => 'Rekening Bank',
                         'e-wallet' => 'E-Wallet',
-                        'credit card' => 'Kartu Kredit',
+                        'other' => 'Lainnya',
                     ])
                     ->required()
-                    ->label('Tipe'),
+                    ->live()
+                    ->label('Tipe Akun'),
+
+                Forms\Components\Select::make('currency_code')
+                    ->options([
+                        'IDR' => 'Rupiah (IDR)',
+                        'USD' => 'US Dollar (USD)',
+                        'CUSTOM' => 'Unit Kustom',
+                    ])
+                    ->default('IDR')
+                    ->required()
+                    ->live()
+                    ->label('Mata Uang'),
+
+                Forms\Components\TextInput::make('custom_unit')
+                    ->visible(fn($get) => $get('currency_code') === 'CUSTOM')
+                    ->required(fn($get) => $get('currency_code') === 'CUSTOM')
+                    ->label('Satuan Kustom (contoh: gram)'),
+
                 Forms\Components\TextInput::make('initial_balance')
                     ->required()
                     ->numeric()
-                    ->default(0)
-                    ->visible(fn($livewire) => $livewire instanceof Pages\CreateAccount)
-                    ->label('Saldo Awal'),
-                Forms\Components\TextInput::make('current_balance')
+                    ->label(
+                        fn($get) =>
+                        $get('currency_code') === 'CUSTOM'
+                            ? 'Saldo Awal (' . ($get('custom_unit') ?: 'satuan kustom') . ')'
+                            : 'Saldo Awal'
+                    )
+                    ->helperText(
+                        fn($get) =>
+                        $get('currency_code') === 'CUSTOM'
+                            ? 'Jumlah awal dalam satuan kustom saat akun dibuat'
+                            : 'Saldo awal dalam mata uang'
+                    ),
+
+                Forms\Components\TextInput::make('custom_unit_amount')
+                    ->visible(fn($get) => $get('currency_code') === 'CUSTOM')
                     ->numeric()
-                    ->visible(fn($livewire) => $livewire instanceof Pages\EditAccount)
-                    ->label('Saldo Saat Ini'),
-                Forms\Components\Textarea::make('balance_adjustment_description')
-                    ->maxLength(255)
-                    ->visible(fn($livewire) => $livewire instanceof Pages\EditAccount)
-                    ->label('Alasan Penyesuaian Saldo')
-                    ->dehydrated(false),
-                Forms\Components\TextInput::make('currency')
-                    ->required()
+                    ->label('Jumlah Saat Ini dalam Satuan Kustom')
+                    ->helperText('Jumlah terkini yang Anda miliki dalam satuan kustom'),
+
+                Forms\Components\Select::make('estimated_currency_code')
+                    ->options([
+                        'IDR' => 'Rupiah (IDR)',
+                        'USD' => 'US Dollar (USD)',
+                    ])
+                    ->visible(fn($get) => $get('currency_code') === 'CUSTOM')
                     ->default('IDR')
-                    ->maxLength(255)
-                    ->label('Mata Uang'),
-                Forms\Components\TextInput::make('icon')
-                    ->maxLength(255)
-                    ->label('Ikon'),
+                    ->label('Mata Uang Taksiran'),
+
+                Forms\Components\TextInput::make('estimated_balance')
+                    ->visible(fn($get) => $get('currency_code') === 'CUSTOM')
+                    ->numeric()
+                    ->label('Nilai Taksiran'),
+
                 Forms\Components\ColorPicker::make('color')
                     ->label('Warna'),
+
+                Forms\Components\TextInput::make('icon')
+                    ->label('Icon'),
+
                 Forms\Components\Textarea::make('description')
                     ->maxLength(65535)
                     ->label('Deskripsi'),
+
                 Forms\Components\Toggle::make('is_active')
                     ->required()
                     ->default(true)
-                    ->label('Aktif'),
+                    ->label('Akun Aktif'),
             ]);
     }
 
@@ -77,51 +114,47 @@ class AccountResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->searchable()
-                    ->label('Nama Akun'),
+                    ->sortable()
+                    ->label('Nama'),
+
                 Tables\Columns\TextColumn::make('type')
                     ->badge()
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                        'cash' => 'Uang Tunai',
+                        'bank' => 'Rekening Bank',
+                        'e-wallet' => 'E-Wallet',
+                        'other' => 'Lainnya',
+                        default => $state,
+                    })
                     ->label('Tipe'),
+
                 Tables\Columns\TextColumn::make('current_balance')
-                    ->money('IDR')
+                    ->money(fn($record) => $record && $record->currency_code === 'CUSTOM' ? null : ($record ? $record->currency_code : 'IDR'))
+                    ->formatStateUsing(
+                        fn($state, $record) =>
+                        $record && $record->currency_code === 'CUSTOM'
+                            ? number_format($record->current_balance, 4) . ' ' . $record->custom_unit
+                            : null
+                    )
                     ->sortable()
                     ->label('Saldo Saat Ini'),
-                Tables\Columns\TextColumn::make('currency')
-                    ->searchable()
-                    ->label('Mata Uang'),
+
+                Tables\Columns\TextColumn::make('estimated_balance')
+                    ->money(fn($record) => $record && $record->estimated_currency_code ? $record->estimated_currency_code : 'IDR')
+                    ->visible(fn($record) => $record && $record->currency_code === 'CUSTOM')
+                    ->sortable()
+                    ->label('Nilai Taksiran'),
+
                 Tables\Columns\IconColumn::make('is_active')
                     ->boolean()
-                    ->label('Aktif'),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->label('Dibuat Pada'),
+                    ->label('Status'),
+
                 Tables\Columns\TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true)
-                    ->label('Diperbarui Pada'),
-            ])
-            ->filters([
-                Tables\Filters\SelectFilter::make('type')
-                    ->options([
-                        'bank' => 'Bank',
-                        'cash' => 'Tunai',
-                        'e-wallet' => 'E-Wallet',
-                        'credit card' => 'Kartu Kredit',
-                    ])
-                    ->label('Tipe'),
-                Tables\Filters\TernaryFilter::make('is_active')
-                    ->label('Aktif'),
-            ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
+                    ->label('Terakhir Diperbarui'),
             ]);
     }
 

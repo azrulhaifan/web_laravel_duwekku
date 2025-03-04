@@ -15,7 +15,11 @@ class Account extends Model
         'type',
         'initial_balance',
         'current_balance',
-        'currency',
+        'currency_code',
+        'custom_unit',
+        'custom_unit_amount',
+        'estimated_balance',
+        'estimated_currency_code',
         'icon',
         'color',
         'description',
@@ -25,6 +29,8 @@ class Account extends Model
     protected $casts = [
         'initial_balance' => 'decimal:2',
         'current_balance' => 'decimal:2',
+        'custom_unit_amount' => 'decimal:4',
+        'estimated_balance' => 'decimal:2',
         'is_active' => 'boolean',
     ];
 
