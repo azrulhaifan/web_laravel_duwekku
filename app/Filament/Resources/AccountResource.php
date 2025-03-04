@@ -69,6 +69,20 @@ class AccountResource extends Resource
                         $get('currency_code') === 'CUSTOM'
                             ? 'Jumlah awal dalam satuan kustom saat akun dibuat'
                             : 'Saldo awal dalam mata uang'
+                    )
+                    ->disabled(fn(Account $record) => $record->exists) // Make read-only for existing records
+                    ->numeric()
+                    ->label(
+                        fn($get) =>
+                        $get('currency_code') === 'CUSTOM'
+                            ? 'Saldo Awal (' . ($get('custom_unit') ?: 'satuan kustom') . ')'
+                            : 'Saldo Awal'
+                    )
+                    ->helperText(
+                        fn($get) =>
+                        $get('currency_code') === 'CUSTOM'
+                            ? 'Jumlah awal dalam satuan kustom saat akun dibuat'
+                            : 'Saldo awal dalam mata uang'
                     ),
 
                 Forms\Components\TextInput::make('custom_unit_amount')
