@@ -8,6 +8,7 @@ use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
 
 class BalanceHistoriesRelationManager extends RelationManager
 {
@@ -30,59 +31,70 @@ class BalanceHistoriesRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->recordTitleAttribute('id')
             ->columns([
+                Tables\Columns\TextColumn::make('type')
+                    ->badge()
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                        'transaction' => 'Transaksi',
+                        'adjustment' => 'Penyesuaian',
+                        'estimation' => 'Taksiran',
+                        default => $state,
+                    })
+                    ->label('Tipe'),
+
+                Tables\Columns\TextColumn::make('old_balance')
+                    ->formatStateUsing(function ($state, $record) {
+                        $account = $record->account;
+
+                        if ($record->is_custom_unit && $account && $account->custom_unit) {
+                            return number_format($state, 4) . ' ' . $account->custom_unit;
+                        } elseif ($record->is_estimation && $account && $account->estimated_currency_code) {
+                            return $this->formatMoney($state, $account->estimated_currency_code);
+                        } else {
+                            return $this->formatMoney($state, $account->currency_code ?? 'IDR');
+                        }
+                    })
+                    ->label('Saldo Lama'),
+
+                Tables\Columns\TextColumn::make('new_balance')
+                    ->formatStateUsing(function ($state, $record) {
+                        $account = $record->account;
+
+                        if ($record->is_custom_unit && $account && $account->custom_unit) {
+                            return number_format($state, 4) . ' ' . $account->custom_unit;
+                        } elseif ($record->is_estimation && $account && $account->estimated_currency_code) {
+                            return $this->formatMoney($state, $account->estimated_currency_code);
+                        } else {
+                            return $this->formatMoney($state, $account->currency_code ?? 'IDR');
+                        }
+                    })
+                    ->label('Saldo Baru'),
+
+                Tables\Columns\TextColumn::make('amount')
+                    ->formatStateUsing(function ($state, $record) {
+                        $account = $record->account;
+
+                        if ($record->is_custom_unit && $account && $account->custom_unit) {
+                            $prefix = $state > 0 ? '+' : '';
+                            return $prefix . number_format($state, 4) . ' ' . $account->custom_unit;
+                        } elseif ($record->is_estimation && $account && $account->estimated_currency_code) {
+                            $prefix = $state > 0 ? '+' : '';
+                            return $prefix . $this->formatMoney($state, $account->estimated_currency_code);
+                        } else {
+                            $prefix = $state > 0 ? '+' : '';
+                            return $prefix . $this->formatMoney($state, $account->currency_code ?? 'IDR');
+                        }
+                    })
+                    ->label('Jumlah'),
+
+                Tables\Columns\TextColumn::make('description')
+                    ->label('Deskripsi'),
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->label('Tanggal'),
-                Tables\Columns\TextColumn::make('type')
-                    ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-                        'adjustment' => 'warning',
-                        'transaction' => 'primary',
-                        default => 'gray',
-                    })
-                    ->formatStateUsing(fn(string $state): string => match ($state) {
-                        'adjustment' => 'Penyesuaian',
-                        'transaction' => 'Transaksi',
-                        default => $state,
-                    })
-                    ->label('Tipe'),
-                Tables\Columns\TextColumn::make('old_balance')
-                    ->money('IDR')
-                    ->label('Saldo Lama'),
-                Tables\Columns\TextColumn::make('new_balance')
-                    ->money('IDR')
-                    ->label('Saldo Baru'),
-                Tables\Columns\TextColumn::make('amount')
-                    ->money('IDR')
-                    ->color(fn($record) => $record->amount >= 0 ? 'success' : 'danger')
-                    ->label('Jumlah'),
-                Tables\Columns\TextColumn::make('description')
-                    ->limit(50)
-                    ->label('Deskripsi'),
-                Tables\Columns\TextColumn::make('source_id')
-                    ->label('Transaksi')
-                    ->formatStateUsing(function ($state, $record) {
-                        if ($record && $record->source_type === 'Transaction' && $state) {
-                            $transaction = Transaction::find($state);
-                            if ($transaction) {
-                                return "#{$state}";
-                            }
-                        }
-                        return '';
-                    })
-                    ->url(function ($record) {
-                        if ($record && $record->source_type === 'Transaction' && $record->source_id) {
-                            $transaction = Transaction::find($record->source_id);
-                            if ($transaction) {
-                                return route('filament.admin.resources.transactions.edit', ['record' => $record->source_id]);
-                            }
-                        }
-                        return null;
-                    })
-                    ->openUrlInNewTab()
-                    ->visible(fn($record) => $record && $record->source_type === 'Transaction' && $record->source_id),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('type')
@@ -102,5 +114,22 @@ class BalanceHistoriesRelationManager extends RelationManager
                 // No bulk actions needed for history
             ])
             ->defaultSort('created_at', 'desc');
+    }
+
+    /**
+     * Format a number as money with currency
+     */
+    private function formatMoney($amount, $currency = 'IDR'): string
+    {
+        $symbol = match ($currency) {
+            'USD' => '$',
+            'IDR' => 'Rp',
+            default => $currency . ' ',
+        };
+
+        $decimals = $currency === 'IDR' ? 0 : 2;
+        $formattedAmount = number_format($amount, $decimals, ',', '.');
+
+        return $symbol . ' ' . $formattedAmount;
     }
 }
