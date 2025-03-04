@@ -73,7 +73,7 @@ class AccountResource extends Resource
                             ? 'Jumlah awal dalam satuan kustom saat akun dibuat'
                             : 'Saldo awal dalam mata uang'
                     )
-                    ->disabled(fn(Account $record) => $record->exists) // Make read-only for existing records
+                    ->disabled(fn(?Account $record) => $record !== null && $record->exists) // Fixed to handle null record
                     ->numeric()
                     ->label(
                         fn($get) =>
@@ -150,13 +150,22 @@ class AccountResource extends Resource
                     ->label('Tipe'),
 
                 Tables\Columns\TextColumn::make('current_balance')
-                    ->money(fn($record) => $record && $record->currency_code === 'CUSTOM' ? null : ($record ? $record->currency_code : 'IDR'))
-                    ->formatStateUsing(
-                        fn($state, $record) =>
-                        $record && $record->currency_code === 'CUSTOM'
-                            ? number_format($record->current_balance, 4) . ' ' . $record->custom_unit
-                            : null
-                    )
+                    ->formatStateUsing(function ($state, $record) {
+                        if (!$record) return null;
+
+                        if ($record->currency_code === 'CUSTOM') {
+                            return number_format($record->current_balance, 4) . ' ' . $record->custom_unit;
+                        } else {
+                            $symbol = match ($record->currency_code) {
+                                'USD' => '$',
+                                'IDR' => 'Rp',
+                                default => ($record->currency_code ?? 'IDR') . ' ',
+                            };
+
+                            $decimals = $record->currency_code === 'IDR' ? 0 : 2;
+                            return $symbol . ' ' . number_format($record->current_balance, $decimals, ',', '.');
+                        }
+                    })
                     ->sortable()
                     ->label('Saldo Saat Ini'),
 
