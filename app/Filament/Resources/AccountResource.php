@@ -34,6 +34,7 @@ class AccountResource extends Resource
                         'cash' => 'Uang Tunai',
                         'bank' => 'Rekening Bank',
                         'e-wallet' => 'E-Wallet',
+                        'deposit' => 'Deposito',
                         'other' => 'Lainnya',
                     ])
                     ->required()
@@ -143,12 +144,28 @@ class AccountResource extends Resource
                     ->sortable()
                     ->label('Nama'),
 
+                Tables\Columns\TextColumn::make('description')
+                    ->toggleable(isToggledHiddenByDefault: false)
+                    ->formatStateUsing(function ($state) {
+                        if (empty($state)) {
+                            return "-";
+                        }
+
+                        if (strlen($state) <= 25) {
+                            return $state;
+                        }
+
+                        return '...' . substr($state, -25);
+                    })
+                    ->label('Deskripsi'),
+
                 Tables\Columns\TextColumn::make('type')
                     ->badge()
                     ->formatStateUsing(fn(string $state): string => match ($state) {
                         'cash' => 'Uang Tunai',
                         'bank' => 'Rekening Bank',
                         'e-wallet' => 'E-Wallet',
+                        'deposit' => 'Deposito',
                         'other' => 'Lainnya',
                         default => $state,
                     })
@@ -190,6 +207,23 @@ class AccountResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->label('Terakhir Diperbarui'),
+            ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('type')
+                    ->options([
+                        'cash' => 'Uang Tunai',
+                        'bank' => 'Rekening Bank',
+                        'e-wallet' => 'E-Wallet',
+                        'deposit' => 'Deposito',
+                        'other' => 'Lainnya',
+                    ])
+                    ->label('Tipe Akun'),
+
+                Tables\Filters\TernaryFilter::make('is_active')
+                    ->label('Status Akun')
+                    ->trueLabel('Aktif')
+                    ->falseLabel('Tidak Aktif')
+                    ->placeholder('Semua'),
             ]);
     }
 
