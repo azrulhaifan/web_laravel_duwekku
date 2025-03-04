@@ -73,20 +73,25 @@ class AccountResource extends Resource
                             ? 'Jumlah awal dalam satuan kustom saat akun dibuat'
                             : 'Saldo awal dalam mata uang'
                     )
-                    ->disabled(fn(?Account $record) => $record !== null && $record->exists) // Fixed to handle null record
-                    ->numeric()
-                    ->label(
-                        fn($get) =>
-                        $get('currency_code') === 'CUSTOM'
-                            ? 'Saldo Awal (' . ($get('custom_unit') ?: 'satuan kustom') . ')'
-                            : 'Saldo Awal'
-                    )
-                    ->helperText(
-                        fn($get) =>
-                        $get('currency_code') === 'CUSTOM'
-                            ? 'Jumlah awal dalam satuan kustom saat akun dibuat'
-                            : 'Saldo awal dalam mata uang'
-                    ),
+                    ->disabled(fn(?Account $record) => $record !== null && $record->exists),
+
+                // Add this new field to display current balance for non-custom currencies
+                Forms\Components\TextInput::make('current_balance')
+                    ->label('Saldo Saat Ini')
+                    ->mask(RawJs::make('$money($input,`.`,`,`,4)'))
+                    ->stripCharacters(',')
+                    ->visible(fn(?Account $record) => $record !== null && $record->exists && $record->currency_code !== 'CUSTOM')
+                    ->formatStateUsing(function ($state, $record) {
+                        if (!$record) return null;
+                        return $state;
+                    }),
+
+                // Add the adjustment reason field
+                Forms\Components\Textarea::make('adjustment_reason')
+                    ->label('Alasan Penyesuaian Saldo')
+                    ->visible(fn(?Account $record) => $record !== null && $record->exists && $record->currency_code !== 'CUSTOM')
+                    ->placeholder('Masukkan alasan penyesuaian saldo (opsional)')
+                    ->maxLength(255),
 
                 Forms\Components\TextInput::make('custom_unit_amount')
                     ->visible(fn($get) => $get('currency_code') === 'CUSTOM')

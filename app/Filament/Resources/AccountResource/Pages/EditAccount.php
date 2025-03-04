@@ -16,4 +16,13 @@ class EditAccount extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        if (isset($data['adjustment_reason'])) {
+            request()->merge(['adjustment_reason' => $data['adjustment_reason']]);
+        }
+
+        return $data;
+    }
 }

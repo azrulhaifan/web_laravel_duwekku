@@ -50,7 +50,6 @@ class Account extends Model
             if (
                 $account->isDirty('current_balance') &&
                 !app()->runningInConsole() &&
-                request()->has('balance_adjustment_description') &&
                 $account->currency_code !== 'CUSTOM'
             ) {
                 $oldBalance = $account->getOriginal('current_balance');
@@ -63,7 +62,7 @@ class Account extends Model
                     'amount' => $amount,
                     'type' => 'adjustment',
                     'source_type' => 'Manual',
-                    'description' => request('balance_adjustment_description') ?? 'Manual balance adjustment',
+                    'description' => request('adjustment_reason') ? request('adjustment_reason') : 'Manual balance adjustment',
                 ]);
             }
 
@@ -73,7 +72,7 @@ class Account extends Model
                 ($account->isDirty('custom_unit_amount') || $account->isDirty('estimated_balance')) &&
                 !app()->runningInConsole()
             ) {
-                $description = request('balance_adjustment_description') ?? 'Manual balance adjustment';
+                $description = request('adjustment_reason') ?? 'Manual balance adjustment';
 
                 // Track custom unit amount changes
                 if ($account->isDirty('custom_unit_amount')) {
