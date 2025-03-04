@@ -35,7 +35,13 @@ class TransactionResource extends Resource
                     ->afterStateUpdated(fn(Forms\Set $set) => $set('category_id', null))
                     ->label('Tipe Transaksi'),
                 Forms\Components\Select::make('account_id')
-                    ->relationship('account', 'name', fn($query) => $query->active()) // Only show active accounts
+                    ->relationship('account', 'name', function ($query) {
+                        // Only show active accounts AND exclude custom currency accounts
+                        return $query->active()->where(function ($query) {
+                            $query->where('currency_code', '!=', 'CUSTOM')
+                                ->orWhereNull('currency_code');
+                        });
+                    })
                     ->required()
                     ->preload()
                     ->label('Akun')
@@ -53,7 +59,13 @@ class TransactionResource extends Resource
                 Forms\Components\Select::make('to_account_id')
                     ->options(function ($get) {
                         $accountId = $get('account_id');
-                        $accounts = Account::active(); // Only show active accounts
+
+                        // Only show active accounts AND exclude custom currency accounts
+                        $accounts = Account::active()
+                            ->where(function ($query) {
+                                $query->where('currency_code', '!=', 'CUSTOM')
+                                    ->orWhereNull('currency_code');
+                            });
 
                         // Exclude the source account from destination options
                         if ($accountId) {

@@ -27,9 +27,14 @@ class DebtResource extends Resource
             ->schema([
                 // Make sure all Select components have proper options with non-null labels
                 Forms\Components\Select::make('account_id')
-                    ->relationship('account', 'name', fn ($query) => $query->active()) // Only show active accounts
+                    ->relationship('account', 'name', function ($query) {
+                        // Only show active accounts AND exclude custom currency accounts
+                        return $query->active()->where(function ($query) {
+                            $query->where('currency_code', '!=', 'CUSTOM')
+                                ->orWhereNull('currency_code');
+                        });
+                    })
                     ->required()
-                    ->preload()
                     ->label('Akun'),
 
                 Forms\Components\Select::make('type')
