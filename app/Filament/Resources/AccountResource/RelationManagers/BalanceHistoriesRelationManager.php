@@ -33,6 +33,11 @@ class BalanceHistoriesRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('id')
             ->columns([
+                Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->label('Tanggal'),
+
                 Tables\Columns\TextColumn::make('type')
                     ->badge()
                     ->formatStateUsing(fn(string $state): string => match ($state) {
@@ -90,11 +95,6 @@ class BalanceHistoriesRelationManager extends RelationManager
 
                 Tables\Columns\TextColumn::make('description')
                     ->label('Deskripsi'),
-
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->label('Tanggal'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('type')
