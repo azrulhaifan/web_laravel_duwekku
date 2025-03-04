@@ -9,6 +9,7 @@ use App\Models\Transaction;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Support\RawJs;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -80,6 +81,8 @@ class TransactionResource extends Resource
                 Forms\Components\TextInput::make('amount')
                     ->required()
                     ->numeric()
+                    ->mask(RawJs::make('$money($input,`.`,`,`,4)'))
+                    ->stripCharacters(',')
                     ->label('Jumlah'),
                 Forms\Components\DatePicker::make('date')
                     ->required()
