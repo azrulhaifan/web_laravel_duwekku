@@ -35,7 +35,7 @@ class TransactionResource extends Resource
                     ->afterStateUpdated(fn(Forms\Set $set) => $set('category_id', null))
                     ->label('Tipe Transaksi'),
                 Forms\Components\Select::make('account_id')
-                    ->relationship('account', 'name', fn ($query) => $query->active()) // Only show active accounts
+                    ->relationship('account', 'name', fn($query) => $query->active()) // Only show active accounts
                     ->required()
                     ->preload()
                     ->label('Akun')
@@ -81,7 +81,24 @@ class TransactionResource extends Resource
                     ->maxLength(65535)
                     ->label('Deskripsi'),
                 Forms\Components\FileUpload::make('attachment')
+                    ->disk('private')
                     ->directory('attachments')
+                    ->visibility('private')
+                    // ->multiple()
+                    ->openable()
+                    ->downloadable()
+                    ->acceptedFileTypes([
+                        'image/jpeg',
+                        'image/png',
+                        'image/gif',
+                        'image/webp',
+                        'application/pdf',
+                        'application/vnd.ms-excel',
+                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        'application/msword',
+                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        'text/csv'
+                    ])
                     ->label('Lampiran'),
                 // Tambahkan opsi untuk mencatat hutang/piutang
                 Forms\Components\Toggle::make('create_debt')
