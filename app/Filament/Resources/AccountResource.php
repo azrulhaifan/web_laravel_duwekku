@@ -14,6 +14,9 @@ use Filament\Tables\Table;
 
 class AccountResource extends Resource
 {
+    // TODO AZRUL
+    // PEMBULATAN DI RIWAYAT SALDO DAN LIST ACCOUNT (BALANCE) HARUS DIHAPUS (TAMPILKAN PRESISI 4 DESIMAL TANPA PEMBULATAN)
+
     protected static ?string $model = Account::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-credit-card';
