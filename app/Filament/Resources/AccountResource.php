@@ -8,6 +8,7 @@ use App\Models\Account;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Support\RawJs;
 use Filament\Tables;
 use Filament\Tables\Table;
 
@@ -57,6 +58,8 @@ class AccountResource extends Resource
 
                 Forms\Components\TextInput::make('initial_balance')
                     ->required()
+                    ->mask(RawJs::make('$money($input,`.`,`,`,4)'))
+                    ->stripCharacters(',')
                     ->numeric()
                     ->label(
                         fn($get) =>
@@ -88,6 +91,8 @@ class AccountResource extends Resource
                 Forms\Components\TextInput::make('custom_unit_amount')
                     ->visible(fn($get) => $get('currency_code') === 'CUSTOM')
                     ->numeric()
+                    ->mask(RawJs::make('$money($input,`.`,`,`,4)'))
+                    ->stripCharacters(',')
                     ->label('Jumlah Saat Ini dalam Satuan Kustom')
                     ->helperText('Jumlah terkini yang Anda miliki dalam satuan kustom'),
 
@@ -103,6 +108,8 @@ class AccountResource extends Resource
                 Forms\Components\TextInput::make('estimated_balance')
                     ->visible(fn($get) => $get('currency_code') === 'CUSTOM')
                     ->numeric()
+                    ->mask(RawJs::make('$money($input,`.`,`,`,4)'))
+                    ->stripCharacters(',')
                     ->label('Nilai Taksiran'),
 
                 Forms\Components\ColorPicker::make('color')
