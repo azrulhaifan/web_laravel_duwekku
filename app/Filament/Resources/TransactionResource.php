@@ -11,6 +11,8 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Support\RawJs;
 use Filament\Tables;
+use Filament\Tables\Columns\Summarizers\Average;
+use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -233,6 +235,21 @@ class TransactionResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->label('Diperbarui Pada'),
+
+                Tables\Columns\TextColumn::make('amount')
+                    ->money('IDR')
+                    ->sortable()
+                    ->label('Jumlah')
+                    ->summarize([
+                        Sum::make()
+                            ->label('Total'),
+                        Sum::make()
+                            ->label('Total Pemasukan')
+                            ->query(fn($query) => $query->where('type', 'income')),
+                        Sum::make()
+                            ->label('Total Pengeluaran')
+                            ->query(fn($query) => $query->where('type', 'expense')),
+                    ]),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('type')
