@@ -43,7 +43,8 @@ class RecentTransactions extends BaseWidget
                 Tables\Columns\TextColumn::make('account.name')
                     ->label('Akun'),
                 Tables\Columns\TextColumn::make('category.name')
-                    ->label('Kategori'),
+                    ->label('Kategori')
+                    ->placeholder('-'),
                 Tables\Columns\TextColumn::make('amount')
                     ->money('IDR')
                     ->label('Jumlah'),
@@ -52,7 +53,8 @@ class RecentTransactions extends BaseWidget
                     ->label('Tanggal'),
                 Tables\Columns\TextColumn::make('description')
                     ->limit(30)
-                    ->label('Deskripsi'),
+                    ->label('Deskripsi')
+                    ->placeholder('-'),
             ])
             ->actions([
                 Tables\Actions\Action::make('view')
