@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Resources\TransactionResource;
 use App\Models\Account;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -37,20 +38,23 @@ class AccountBalances extends BaseWidget
             ->actions([
                 Tables\Actions\Action::make('view_transactions')
                     ->label('Lihat Transaksi')
-                    ->url(fn(Account $record): string => route('filament.apps.resources.transactions.index', [
-                        'tableFilters[account_id][value]' => $record->id,
-                    ]))
+                    ->url(fn(Account $record): string => $this->getTransactionUrl($record))
                     ->icon('heroicon-m-arrow-top-right-on-square')
                     ->openUrlInNewTab(),
             ])
-            ->actions([
-                Tables\Actions\Action::make('view_transactions')
-                    ->label('Lihat Transaksi')
-                    ->url(fn(Account $record): string => route('filament.apps.resources.transactions.index', [
-                        'tableFilters[account_id][value]' => $record->id,
-                    ]))
-                    ->icon('heroicon-m-arrow-top-right-on-square')
-                    ->openUrlInNewTab(),
-            ]);
+            ->recordUrl(fn(Account $record): string => $this->getTransactionUrl($record));
+    }
+
+    protected function getTransactionUrl(Account $record): string
+    {
+        // Create URL with filter for this specific account
+        $baseUrl = TransactionResource::getUrl('index');
+
+        // Build the query parameters in the correct format
+        $queryParams = [
+            'tableFilters[account_id][values][0]' => $record->id,
+        ];
+
+        return $baseUrl . '?' . http_build_query($queryParams);
     }
 }
