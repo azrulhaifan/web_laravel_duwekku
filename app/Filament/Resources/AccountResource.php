@@ -14,9 +14,6 @@ use Filament\Tables\Table;
 
 class AccountResource extends Resource
 {
-    // TODO AZRUL
-    // PEMBULATAN DI RIWAYAT SALDO DAN LIST ACCOUNT (BALANCE) HARUS DIHAPUS (TAMPILKAN PRESISI 4 DESIMAL TANPA PEMBULATAN)
-
     protected static ?string $model = Account::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-credit-card';
@@ -187,8 +184,8 @@ class AccountResource extends Resource
                                 default => ($record->currency_code ?? 'IDR') . ' ',
                             };
 
-                            $decimals = $record->currency_code === 'IDR' ? 0 : 2;
-                            return $symbol . ' ' . number_format($record->current_balance, $decimals, ',', '.');
+                            $decimals = $record->currency_code === 'IDR' ? 2 : 4;
+                            return $symbol . ' ' . number_format($record->current_balance, $decimals, '.', ',');
                         }
                     })
                     ->sortable()
