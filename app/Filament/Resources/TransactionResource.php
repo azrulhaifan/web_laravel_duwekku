@@ -258,13 +258,19 @@ class TransactionResource extends Resource
                         'expense' => 'Pengeluaran',
                         'transfer' => 'Transfer',
                     ])
-                    ->label('Tipe'),
+                    ->label('Tipe')
+                    ->preload()
+                    ->multiple(),
                 Tables\Filters\SelectFilter::make('account_id')
                     ->relationship('account', 'name')
-                    ->label('Akun'),
+                    ->label('Akun')
+                    ->preload()
+                    ->multiple(),
                 Tables\Filters\SelectFilter::make('category_id')
                     ->relationship('category', 'name')
-                    ->label('Kategori'),
+                    ->label('Kategori')
+                    ->preload()
+                    ->multiple(),
                 // Fix for DateRangeFilter - using the correct namespace
                 Tables\Filters\Filter::make('date')
                     ->form([
