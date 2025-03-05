@@ -22,7 +22,7 @@ class UpcomingDebts extends BaseWidget
                 Debt::query()
                     ->where('is_settled', false)
                     ->whereNotNull('due_date')
-                    ->where('due_date', '<=', now()->addDays(30))
+                    ->where('due_date', '<=', now()->addDays(7))
                     ->orderBy('due_date')
             )
             ->columns([
@@ -50,21 +50,17 @@ class UpcomingDebts extends BaseWidget
                     ->label('Jatuh Tempo'),
                 Tables\Columns\TextColumn::make('description')
                     ->limit(30)
-                    ->label('Deskripsi'),
+                    ->label('Deskripsi')
+                    ->placeholder('-'),
             ])
             ->actions([
                 Tables\Actions\Action::make('view')
                     ->label('Lihat Semua')
-                    ->url(fn() => route('filament.admin.resources.debts.index', [
-                        'tableFilters[is_settled][value]' => false,
+                    ->url(fn() => route('filament.apps.resources.debts.index', [
+                        'tableFilters[is_settled][values][0]' => false,
                     ]))
                     ->icon('heroicon-m-arrow-top-right-on-square')
                     ->openUrlInNewTab(),
-                Tables\Actions\Action::make('settle')
-                    ->label('Lunasi')
-                    ->url(fn(Debt $record): string => route('filament.admin.resources.debts.edit', ['record' => $record]))
-                    ->icon('heroicon-m-check-circle')
-                    ->color('success'),
             ]);
     }
 }
