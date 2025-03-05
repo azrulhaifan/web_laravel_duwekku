@@ -127,8 +127,8 @@ class BalanceHistoriesRelationManager extends RelationManager
             default => $currency . ' ',
         };
 
-        $decimals = $currency === 'IDR' ? 0 : 2;
-        $formattedAmount = number_format($amount, $decimals, ',', '.');
+        $decimals = $currency === 'IDR' ? 2 : 4;
+        $formattedAmount = number_format($amount, $decimals, '.', ',');
 
         return $symbol . ' ' . $formattedAmount;
     }
