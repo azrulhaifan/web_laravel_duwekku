@@ -22,7 +22,7 @@ class MonthlyIncomeExpense extends ChartWidget
         $expenses = collect();
 
         // Get data for the last 6 months
-        for ($i = 5; $i >= 0; $i--) {
+        for ($i = 11; $i >= 0; $i--) {
             $date = Carbon::now()->subMonths($i);
             $monthLabel = $date->format('M Y');
 
