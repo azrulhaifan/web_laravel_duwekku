@@ -157,7 +157,8 @@ class AccountResource extends Resource
 
                         return '...' . substr($state, -25);
                     })
-                    ->label('Deskripsi'),
+                    ->label('Deskripsi')
+                    ->placeholder('-'),
 
                 Tables\Columns\TextColumn::make('type')
                     ->badge()

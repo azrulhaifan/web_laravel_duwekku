@@ -190,7 +190,8 @@ class TransactionResource extends Resource
                     ->label('Akun'),
                 Tables\Columns\TextColumn::make('category.name')
                     ->sortable()
-                    ->label('Kategori'),
+                    ->label('Kategori')
+                    ->placeholder('-'),
                 Tables\Columns\TextColumn::make('toAccount.name')
                     ->sortable()
                     ->label('Akun Tujuan')
