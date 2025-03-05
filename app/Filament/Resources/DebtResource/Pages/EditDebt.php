@@ -42,6 +42,9 @@ class EditDebt extends EditRecord
     {
         // If marking as settled, ensure we create a settlement transaction
         if (isset($data['is_settled']) && $data['is_settled'] && empty($data['settlement_transaction_id'])) {
+            // Add flag to prevent duplicate account history entries
+            request()->merge(['_transaction_update' => true]);
+            
             // Create settlement transaction
             $debt = $this->getRecord();
             $settlementType = $debt->type === 'payable' ? 'expense' : 'income';

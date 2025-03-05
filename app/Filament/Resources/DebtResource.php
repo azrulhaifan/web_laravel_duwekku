@@ -189,6 +189,9 @@ class DebtResource extends Resource
                             ->content('Transaksi penyelesaian akan dibuat otomatis'),
                     ])
                     ->action(function (Debt $record, array $data) {
+                        // Set a flag to prevent duplicate account history entries
+                        request()->merge(['_transaction_update' => true]);
+
                         // Create settlement transaction automatically
                         $settlementType = $record->type === 'payable' ? 'expense' : 'income';
 
