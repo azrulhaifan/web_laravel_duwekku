@@ -177,7 +177,8 @@ class TransactionResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->defaultSort('date', 'desc') // Add default sorting by date in descending order
+            ->defaultSort('date', 'desc')
+            ->defaultSort('time', 'desc') // Add time sorting as secondary sort
             ->columns([
                 Tables\Columns\TextColumn::make('type')
                     ->badge()
@@ -211,7 +212,9 @@ class TransactionResource extends Resource
                     ->sortable()
                     ->label('Jumlah'),
                 Tables\Columns\TextColumn::make('date')
-                    ->date()
+                    ->formatStateUsing(fn(Transaction $record): string =>
+                    $record->date->format('d M Y') .
+                        ($record->time ? ' ' . $record->time->format('H:i') : ''))
                     ->sortable()
                     ->label('Tanggal'),
                 Tables\Columns\IconColumn::make('is_recurring')
