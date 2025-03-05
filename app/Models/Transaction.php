@@ -15,6 +15,7 @@ class Transaction extends Model
         'account_id',
         'category_id',
         'to_account_id',
+        'transfer_fee',
         'type',
         'amount',
         'date',
@@ -31,6 +32,7 @@ class Transaction extends Model
         'date' => 'date',
         'time' => 'datetime',
         'is_recurring' => 'boolean',
+        'transfer_fee' => 'decimal:4',
     ];
 
     public function account(): BelongsTo
@@ -133,19 +135,21 @@ class Transaction extends Model
             case 'transfer':
                 // Source account
                 $oldSourceBalance = $this->account->current_balance;
-                $newSourceBalance = $oldSourceBalance - $amount;
+                $totalDeduction = $amount + ($this->transfer_fee ?? 0);
+                $newSourceBalance = $oldSourceBalance - $totalDeduction;
 
                 $this->account->balanceHistories()->create([
                     'old_balance' => $oldSourceBalance,
                     'new_balance' => $newSourceBalance,
-                    'amount' => -$amount,
+                    'amount' => -$totalDeduction,
                     'type' => 'transaction',
                     'source_type' => 'Transaction',
                     'source_id' => $this->id,
-                    'description' => "Dari transaksi {$transactionType} ID #{$this->id} ke {$this->toAccount->name}",
+                    'description' => "Dari transaksi {$transactionType} ID #{$this->id} ke {$this->toAccount->name}" .
+                        ($this->transfer_fee > 0 ? " (termasuk biaya transfer " . number_format($this->transfer_fee, 0, ',', '.') . ")" : ""),
                 ]);
 
-                $this->account->decrement('current_balance', $amount);
+                $this->account->decrement('current_balance', $totalDeduction);
 
                 // Destination account
                 $oldDestBalance = $this->toAccount->current_balance;
@@ -175,6 +179,7 @@ class Transaction extends Model
         $originalAccountId = $originalData['account_id'] ?? null;
         $originalToAccountId = $originalData['to_account_id'] ?? null;
         $originalAmount = $originalData['amount'] ?? 0;
+        $originalTransferFee = $originalData['transfer_fee'] ?? 0;
 
         // First, reverse the effect of the original transaction
         if ($originalType && $originalAccountId) {
@@ -186,7 +191,9 @@ class Transaction extends Model
                 } elseif ($originalType === 'expense') {
                     $originalAccount->incrementBalance($originalAmount);
                 } elseif ($originalType === 'transfer' && $originalToAccountId) {
-                    $originalAccount->incrementBalance($originalAmount);
+                    // For transfers, include the original transfer fee when reverting
+                    $originalTotalDeduction = $originalAmount + $originalTransferFee;
+                    $originalAccount->incrementBalance($originalTotalDeduction);
 
                     $originalToAccount = Account::find($originalToAccountId);
                     if ($originalToAccount) {
@@ -249,19 +256,21 @@ class Transaction extends Model
             case 'transfer':
                 // Source account
                 $oldSourceBalance = $this->account->current_balance;
-                $newSourceBalance = $oldSourceBalance + $amount;
+                $totalDeduction = $amount + ($this->transfer_fee ?? 0);
+                $newSourceBalance = $oldSourceBalance + $totalDeduction;
 
                 $this->account->balanceHistories()->create([
                     'old_balance' => $oldSourceBalance,
                     'new_balance' => $newSourceBalance,
-                    'amount' => $amount,
+                    'amount' => $totalDeduction,
                     'type' => 'transaction',
                     'source_type' => 'Transaction',
                     'source_id' => $this->id,
-                    'description' => "Pembatalan transaksi {$transactionType} ID #{$this->id}",
+                    'description' => "Pembatalan transaksi {$transactionType} ID #{$this->id}" .
+                        ($this->transfer_fee > 0 ? " (termasuk biaya transfer " . number_format($this->transfer_fee, 0, ',', '.') . ")" : ""),
                 ]);
 
-                $this->account->increment('current_balance', $amount);
+                $this->account->increment('current_balance', $totalDeduction);
 
                 // Destination account
                 $oldDestBalance = $this->toAccount->current_balance;

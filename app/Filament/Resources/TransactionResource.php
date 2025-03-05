@@ -162,6 +162,15 @@ class TransactionResource extends Resource
                     ->visible(fn($get) => $get('is_recurring'))
                     ->required(fn($get) => $get('is_recurring'))
                     ->label('Hari Pengulangan'),
+
+                Forms\Components\TextInput::make('transfer_fee')
+                    ->numeric()
+                    ->mask(RawJs::make('$money($input,`.`,`,`,2)'))
+                    ->stripCharacters(',')
+                    ->visible(fn($get) => $get('type') === 'transfer')
+                    ->required(fn($get) => $get('type') === 'transfer')
+                    ->label('Biaya Transfer')
+                    ->helperText('Biaya yang dikenakan untuk melakukan transfer'),
             ]);
     }
 
