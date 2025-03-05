@@ -14,6 +14,10 @@ use Filament\Tables\Table;
 
 class DebtResource extends Resource
 {
+    // TODO AZRUL
+    // PASTIKAN PERHITUNGAN DEBT SUDAH BENAR
+    // UNTUK TRANSAKSI EXPANSE (PENGURANGAN AMOUNT), REJECT / TOLAK SUBMIT JIKA BALANCE NYA KURANG
+
     protected static ?string $model = Debt::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-credit-card';
