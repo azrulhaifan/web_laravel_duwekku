@@ -45,6 +45,7 @@ class TransactionResource extends Resource
                     })
                     ->required()
                     ->preload()
+                    ->searchable()
                     ->label('Akun')
                     ->live(),
                 Forms\Components\Select::make('category_id')
@@ -77,6 +78,7 @@ class TransactionResource extends Resource
                     })
                     ->visible(fn($get) => $get('type') === 'transfer')
                     ->required(fn($get) => $get('type') === 'transfer')
+                    ->searchable()
                     ->label('Akun Tujuan'),
                 Forms\Components\TextInput::make('amount')
                     ->required()
