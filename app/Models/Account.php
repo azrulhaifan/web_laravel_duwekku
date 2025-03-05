@@ -50,7 +50,8 @@ class Account extends Model
             if (
                 $account->isDirty('current_balance') &&
                 !app()->runningInConsole() &&
-                $account->currency_code !== 'CUSTOM'
+                $account->currency_code !== 'CUSTOM' &&
+                !request()->has('_transaction_update') // Skip if this is from a transaction update
             ) {
                 $oldBalance = $account->getOriginal('current_balance');
                 $newBalance = $account->current_balance;

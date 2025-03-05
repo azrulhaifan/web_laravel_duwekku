@@ -175,6 +175,9 @@ class Transaction extends Model
      */
     public function updateAccountBalancesOnUpdate(array $originalData): void
     {
+        // Set a flag to indicate this is a transaction update
+        request()->merge(['_transaction_update' => true]);
+
         $originalType = $originalData['type'] ?? null;
         $originalAccountId = $originalData['account_id'] ?? null;
         $originalToAccountId = $originalData['to_account_id'] ?? null;
