@@ -10,6 +10,14 @@ class CreateTransaction extends CreateRecord
 {
     protected static string $resource = TransactionResource::class;
 
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        // Add flag to prevent duplicate account history entries
+        request()->merge(['_transaction_update' => true]);
+
+        return $data;
+    }
+
     protected function afterCreate(): void
     {
         $transaction = $this->record;
@@ -19,7 +27,7 @@ class CreateTransaction extends CreateRecord
         if (isset($data['create_debt']) && $data['create_debt'] && in_array($transaction->type, ['income', 'expense'])) {
             // Determine debt type based on transaction type
             $debtType = $transaction->type === 'expense' ? 'receivable' : 'payable';
-            
+
             Debt::create([
                 'account_id' => $transaction->account_id,
                 'transaction_id' => $transaction->id,
