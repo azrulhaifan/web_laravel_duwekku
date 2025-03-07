@@ -3,7 +3,9 @@
 namespace App\Filament\Resources\TransactionResource\Pages;
 
 use App\Filament\Resources\TransactionResource;
+use App\Models\Account;
 use App\Models\Debt;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateTransaction extends CreateRecord
@@ -14,6 +16,23 @@ class CreateTransaction extends CreateRecord
     {
         // Add flag to prevent duplicate account history entries
         request()->merge(['_transaction_update' => true]);
+
+        // Check if there's enough balance for expense transactions
+        if (isset($data['type']) && $data['type'] === 'expense') {
+            $account = Account::find($data['account_id']);
+            if ($account && $account->current_balance < $data['amount']) {
+                // Not enough balance, show error notification and halt
+                Notification::make()
+                    ->title('Saldo tidak cukup')
+                    ->body("Saldo akun {$account->name} tidak mencukupi untuk transaksi pengeluaran ini.")
+                    ->danger()
+                    ->send();
+
+                $this->halt();
+
+                return $data;
+            }
+        }
 
         return $data;
     }

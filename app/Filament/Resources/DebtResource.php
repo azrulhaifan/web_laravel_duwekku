@@ -16,7 +16,7 @@ class DebtResource extends Resource
 {
     // TODO AZRUL
     // PASTIKAN PERHITUNGAN DEBT SUDAH BENAR
-    // UNTUK TRANSAKSI EXPANSE (PENGURANGAN AMOUNT), REJECT / TOLAK SUBMIT JIKA BALANCE NYA KURANG
+    // [DONE] UNTUK TRANSAKSI EXPANSE (PENGURANGAN AMOUNT), REJECT / TOLAK SUBMIT JIKA BALANCE NYA KURANG
 
     protected static ?string $model = Debt::class;
 
@@ -198,6 +198,21 @@ class DebtResource extends Resource
 
                         // Create settlement transaction automatically
                         $settlementType = $record->type === 'payable' ? 'expense' : 'income';
+
+                        // Check if there's enough balance for expense transactions
+                        if ($settlementType === 'expense') {
+                            $account = \App\Models\Account::find($record->account_id);
+                            if ($account && $account->current_balance < $record->amount) {
+                                // Not enough balance, show error notification
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Saldo tidak cukup')
+                                    ->body("Saldo akun {$account->name} tidak mencukupi untuk melunasi hutang ini.")
+                                    ->danger()
+                                    ->send();
+
+                                return;
+                            }
+                        }
 
                         $transaction = Transaction::create([
                             'account_id' => $record->account_id,
