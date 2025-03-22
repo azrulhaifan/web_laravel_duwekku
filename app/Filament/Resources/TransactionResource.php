@@ -181,8 +181,10 @@ class TransactionResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->defaultSort('date', 'desc')
-            ->defaultSort('time', 'desc') // Add time sorting as secondary sort
+            ->modifyQueryUsing(function (Builder $query) {
+                $query->orderBy('date', 'desc')
+                    ->orderBy('time', 'desc');
+            })
             ->columns([
                 Tables\Columns\TextColumn::make('type')
                     ->badge()
